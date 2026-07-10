@@ -1,23 +1,11 @@
 from fastapi import FastAPI
+from backend.app.api.routes import router
+from backend.app.core.config import settings
 
 app = FastAPI(
-    title="Clinical Intelligence Copilot Platform",
-    description="A personal healthcare document understanding platform.",
-    version="0.1.0"
+    title=settings.app_name,
+    description=settings.app_description,
+    version=settings.app_version
 )
 
-
-@app.get("/")
-def root():
-    return {
-        "message": "Clinical Intelligence Copilot Platform API is running",
-        "status": "healthy",
-        "version": "0.1.0"
-    }
-
-
-@app.get("/health")
-def health_check():
-    return {
-        "status": "ok"
-    }
+app.include_router(router)
