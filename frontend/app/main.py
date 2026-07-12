@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 2: Frontend is now connected to the FastAPI backend.")
+st.info("Day 3: Document upload foundation.")
 
 st.subheader("Backend Connection Test")
 
@@ -39,6 +39,53 @@ if st.button("Check Backend Status"):
 
     except Exception as error:
         st.error(f"Unexpected error: {error}")
+
+
+st.subheader("Upload Health Document")
+
+uploaded_file = st.file_uploader(
+    "Upload a sample healthcare PDF document",
+    type=["pdf"]
+)
+
+if uploaded_file is not None:
+    st.write(f"Selected file: **{uploaded_file.name}**")
+
+    if st.button("Upload PDF to Backend"):
+        try:
+            files = {
+                "file": (
+                    uploaded_file.name,
+                    uploaded_file.getvalue(),
+                    "application/pdf"
+                )
+            }
+
+            response = requests.post(
+                f"{BACKEND_URL}/documents/upload",
+                files=files,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+
+                if data["status"] == "success":
+                    st.success(data["message"])
+                    st.json(data)
+                else:
+                    st.error(data["message"])
+            else:
+                st.error(f"Backend returned status code: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("Could not connect to backend. Make sure FastAPI is running on port 8000.")
+
+        except requests.exceptions.Timeout:
+            st.error("Upload request timed out. Please try again.")
+
+        except Exception as error:
+            st.error(f"Unexpected error: {error}")
 
 
 st.subheader("Project Information")
