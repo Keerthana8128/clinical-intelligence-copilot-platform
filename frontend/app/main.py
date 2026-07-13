@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 3: Document upload foundation.")
+st.info("Day 4: PDF text extraction foundation.")
 
 st.subheader("Backend Connection Test")
 
@@ -72,7 +72,18 @@ if uploaded_file is not None:
 
                 if data["status"] == "success":
                     st.success(data["message"])
-                    st.json(data)
+
+                    st.write(f"**Filename:** {data['filename']}")
+                    st.write(f"**Saved PDF Path:** {data['saved_path']}")
+                    st.write(f"**Extracted Text Path:** {data['processed_text_path']}")
+                    st.write(f"**Character Count:** {data['character_count']}")
+
+                    st.subheader("Extracted Text Preview")
+                    st.text_area(
+                        "First 1000 characters from the PDF",
+                        data["text_preview"],
+                        height=300
+                                )
                 else:
                     st.error(data["message"])
             else:
