@@ -10,6 +10,10 @@ from backend.app.services.chunking_service import (
     split_text_into_chunks,
     save_chunks,
 )
+from backend.app.services.search_service import (
+    load_chunks,
+    search_chunks,
+)
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -49,8 +53,41 @@ async def upload_document(file: UploadFile = File(...)):
         "saved_path": str(file_path),
         "processed_text_path": str(processed_path),
         "chunks_path": str(chunks_path),
+        "chunks_filename": chunks_path.name,
         "text_preview": preview_text,
         "character_count": len(extracted_text),
         "chunk_count": len(chunks),
         "preview_chunks": preview_chunks
+    }
+
+
+@router.get("/search")
+def search_document_chunks(
+    chunks_filename: str,
+    query: str,
+    top_k: int = 3
+):
+    chunks = load_chunks(chunks_filename)
+
+    if not chunks:
+        return {
+            "status": "error",
+            "message": "Chunks file not found or empty.",
+            "query": query,
+            "results": []
+        }
+
+    results = search_chunks(
+        chunks=chunks,
+        query=query,
+        top_k=top_k
+    )
+
+    return {
+        "status": "success",
+        "message": "Search completed successfully.",
+        "query": query,
+        "chunks_filename": chunks_filename,
+        "result_count": len(results),
+        "results": results
     }
