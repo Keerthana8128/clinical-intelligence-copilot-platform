@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 6: Basic keyword search over document chunks.")
+st.info("Day 7: Basic source-based answer foundation.")
 
 st.subheader("Backend Connection Test")
 
@@ -118,7 +118,7 @@ if uploaded_file is not None:
 st.subheader("Search Uploaded Document Chunks")
 
 search_query = st.text_input(
-    "Enter a keyword or short question",
+    "Enter a keyword or short question for chunk search",
     placeholder="Example: diabetes medication, blood pressure, follow up"
 )
 
@@ -176,6 +176,71 @@ if st.button("Search Chunks"):
 
         except requests.exceptions.Timeout:
             st.error("Search request timed out. Please try again.")
+
+        except Exception as error:
+            st.error(f"Unexpected error: {error}")
+
+
+st.subheader("Ask a Question About the Uploaded Document")
+
+question = st.text_input(
+    "Ask a basic question",
+    placeholder="Example: What medications are mentioned?"
+)
+
+if st.button("Generate Basic Answer"):
+    if not st.session_state.chunks_filename:
+        st.error("Please upload a PDF first before asking a question.")
+    elif not question.strip():
+        st.error("Please enter a question.")
+    else:
+        try:
+            params = {
+                "chunks_filename": st.session_state.chunks_filename,
+                "query": question,
+                "top_k": 3
+            }
+
+            response = requests.get(
+                f"{BACKEND_URL}/documents/ask",
+                params=params,
+                timeout=10
+            )
+
+            if response.status_code == 200:
+                data = response.json()
+
+                if data["status"] == "success":
+                    st.success(data["message"])
+
+                    st.write(f"**Question:** {data['query']}")
+                    st.write(f"**Confidence:** {data['confidence']}")
+
+                    st.subheader("Basic Answer")
+                    st.write(data["answer"])
+
+                    st.subheader("Source Chunks")
+                    if not data["source_chunks"]:
+                        st.warning("No source chunks found.")
+                    else:
+                        for source in data["source_chunks"]:
+                            with st.expander(
+                                f"Source Chunk {source['chunk_id']} | Score: {source['score']}"
+                            ):
+                                st.write(source["text"])
+
+                    st.warning(data["safety_note"])
+
+                else:
+                    st.error(data["message"])
+            else:
+                st.error(f"Backend returned status code: {response.status_code}")
+
+        except requests.exceptions.ConnectionError:
+            st.error("Could not connect to backend. Make sure FastAPI is running on port 8000.")
+
+        except requests.exceptions.Timeout:
+            st.error("Answer request timed out. Please try again.")
 
         except Exception as error:
             st.error(f"Unexpected error: {error}")

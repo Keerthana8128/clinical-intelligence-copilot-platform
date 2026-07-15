@@ -14,6 +14,7 @@ from backend.app.services.search_service import (
     load_chunks,
     search_chunks,
 )
+from backend.app.services.answer_service import create_basic_answer
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
@@ -90,4 +91,44 @@ def search_document_chunks(
         "chunks_filename": chunks_filename,
         "result_count": len(results),
         "results": results
+    }
+
+
+@router.get("/ask")
+def ask_document_question(
+    chunks_filename: str,
+    query: str,
+    top_k: int = 3
+):
+    chunks = load_chunks(chunks_filename)
+
+    if not chunks:
+        return {
+            "status": "error",
+            "message": "Chunks file not found or empty.",
+            "query": query,
+            "answer": None
+        }
+
+    results = search_chunks(
+        chunks=chunks,
+        query=query,
+        top_k=top_k
+    )
+
+    answer_data = create_basic_answer(
+        query=query,
+        search_results=results
+    )
+
+    return {
+        "status": "success",
+        "message": "Basic source-based answer created successfully.",
+        "query": query,
+        "chunks_filename": chunks_filename,
+        "result_count": len(results),
+        "answer": answer_data["answer"],
+        "confidence": answer_data["confidence"],
+        "source_chunks": answer_data["source_chunks"],
+        "safety_note": answer_data["safety_note"]
     }
