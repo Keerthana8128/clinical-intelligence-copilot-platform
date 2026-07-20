@@ -122,13 +122,15 @@ def ask_document_question(
     )
 
     return {
-        "status": "success",
-        "message": "Basic source-based answer created successfully.",
-        "query": query,
-        "chunks_filename": chunks_filename,
-        "result_count": len(results),
-        "answer": answer_data["answer"],
-        "confidence": answer_data["confidence"],
-        "source_chunks": answer_data["source_chunks"],
-        "safety_note": answer_data["safety_note"]
-    }
+    "status": "success",
+    "message": "Structured source-based answer created successfully.",
+    "query": query,
+    "chunks_filename": chunks_filename,
+    "result_count": len(results),
+    "answer": answer_data["answer"],
+    "confidence": answer_data["confidence"],
+    "reason": answer_data["reason"],
+    "source_chunks": answer_data["source_chunks"],
+    "suggested_questions": answer_data["suggested_questions"],
+    "safety_note": answer_data["safety_note"]
+}

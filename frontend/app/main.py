@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 7: Basic source-based answer foundation.")
+st.info("Day 8: Structured answer and safety guardrails.")
 
 st.subheader("Backend Connection Test")
 
@@ -216,8 +216,11 @@ if st.button("Generate Basic Answer"):
                     st.write(f"**Question:** {data['query']}")
                     st.write(f"**Confidence:** {data['confidence']}")
 
-                    st.subheader("Basic Answer")
+                    st.subheader("Structured Answer")
                     st.write(data["answer"])
+
+                    st.subheader("Why this answer was selected")
+                    st.info(data["reason"])
 
                     st.subheader("Source Chunks")
                     if not data["source_chunks"]:
@@ -228,6 +231,9 @@ if st.button("Generate Basic Answer"):
                                 f"Source Chunk {source['chunk_id']} | Score: {source['score']}"
                             ):
                                 st.write(source["text"])
+                            st.subheader("Suggested Questions to Ask a Doctor")
+                            for question_item in data["suggested_questions"]:
+                                st.write(f"- {question_item}")    
 
                     st.warning(data["safety_note"])
 
