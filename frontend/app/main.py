@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 10: PDF upload validation and document metadata.")
+st.info("Day 11: Document metadata registry foundation.")
 
 st.subheader("Backend Connection Test")
 
@@ -77,7 +77,8 @@ if uploaded_file is not None:
                     st.session_state.chunks_filename = data["chunks_filename"]
 
                     st.success(data["message"])
-
+                    st.write(f"**Document ID:** {data['document_id']}")
+                    st.write(f"**Upload Timestamp:** {data['upload_timestamp']}")
                     st.write(f"**Filename:** {data['filename']}")
                     st.write(f"**File Size:** {data['file_size_kb']} KB")
                     st.write(f"**Page Count:** {data['page_count']}")
@@ -87,6 +88,7 @@ if uploaded_file is not None:
                     st.write(f"**Chunks Filename:** {data['chunks_filename']}")
                     st.write(f"**Character Count:** {data['character_count']}")
                     st.write(f"**Chunk Count:** {data['chunk_count']}")
+                    st.write(f"**Metadata Path:** {data['metadata_path']}")
 
                     st.subheader("Extracted Text Preview")
                     st.text_area(
@@ -252,6 +254,48 @@ if st.button("Generate Basic Answer"):
 
         except Exception as error:
             st.error(f"Unexpected error: {error}")
+
+st.subheader("Uploaded Document Registry")
+
+if st.button("Load Uploaded Documents"):
+    try:
+        response = requests.get(
+            f"{BACKEND_URL}/documents/list",
+            timeout=10
+        )
+
+        if response.status_code == 200:
+            data = response.json()
+
+            if data["status"] == "success":
+                st.success(data["message"])
+                st.write(f"**Document Count:** {data['document_count']}")
+
+                if data["document_count"] == 0:
+                    st.info("No uploaded documents found yet.")
+                else:
+                    for document in data["documents"]:
+                        with st.expander(document["filename"]):
+                            st.write(f"**Document ID:** {document['document_id']}")
+                            st.write(f"**File Size:** {document['file_size_kb']} KB")
+                            st.write(f"**Page Count:** {document['page_count']}")
+                            st.write(f"**Character Count:** {document['character_count']}")
+                            st.write(f"**Chunk Count:** {document['chunk_count']}")
+                            st.write(f"**Upload Timestamp:** {document['upload_timestamp']}")
+                            st.write(f"**Chunks Filename:** {document['chunks_filename']}")
+            else:
+                st.error(data["message"])
+        else:
+            st.error(f"Backend returned status code: {response.status_code}")
+
+    except requests.exceptions.ConnectionError:
+        st.error("Could not connect to backend. Make sure FastAPI is running on port 8000.")
+
+    except requests.exceptions.Timeout:
+        st.error("Document list request timed out. Please try again.")
+
+    except Exception as error:
+        st.error(f"Unexpected error: {error}")
 
 
 st.subheader("Project Information")

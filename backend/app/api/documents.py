@@ -1,12 +1,25 @@
 from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
+from backend.app.services.metadata_service import (
+    create_document_id,
+    get_current_timestamp,
+    save_document_metadata,
+    list_documents,
+)
+
 from backend.app.services.file_validation_service import (
     is_pdf_file,
     is_file_size_allowed,
     sanitize_filename,
 )
 
+from backend.app.services.metadata_service import (
+    create_document_id,
+    get_current_timestamp,
+    save_document_metadata,
+    list_documents,
+)
 from backend.app.services.pdf_service import (
     extract_text_from_pdf,
     save_extracted_text,
@@ -25,6 +38,7 @@ from backend.app.schemas.document_schemas import (
     DocumentUploadResponse,
     DocumentSearchResponse,
     DocumentAskResponse,
+    DocumentListResponse,
 )
 from backend.app.services.answer_service import create_basic_answer
 
@@ -69,10 +83,29 @@ async def upload_document(file: UploadFile = File(...)):
 
     preview_text = extracted_text[:1000]
     preview_chunks = chunks[:3]
+    
+    document_id = create_document_id()
+    upload_timestamp = get_current_timestamp()
 
+    document_metadata = {
+        "document_id": document_id,
+        "filename": safe_filename,
+        "saved_path": str(file_path),
+        "processed_text_path": str(processed_path),
+        "chunks_path": str(chunks_path),
+        "chunks_filename": chunks_path.name,
+        "file_size_kb": file_size_kb,
+        "page_count": page_count,
+        "character_count": len(extracted_text),
+        "chunk_count": len(chunks),
+        "upload_timestamp": upload_timestamp
+    }
+
+    metadata_path = save_document_metadata(document_metadata)
     return {
         "status": "success",
-        "message": "PDF uploaded, validated, text extracted, and chunks created successfully.",
+        "message": "PDF uploaded, validated, text extracted, chunks created, and metadata saved successfully.",
+        "document_id": document_id,
         "filename": safe_filename,
         "saved_path": str(file_path),
         "processed_text_path": str(processed_path),
@@ -83,6 +116,8 @@ async def upload_document(file: UploadFile = File(...)):
         "text_preview": preview_text,
         "character_count": len(extracted_text),
         "chunk_count": len(chunks),
+        "upload_timestamp": upload_timestamp,
+        "metadata_path": str(metadata_path),
         "preview_chunks": preview_chunks
     }
 
@@ -168,3 +203,13 @@ def ask_document_question(
     "suggested_questions": answer_data["suggested_questions"],
     "safety_note": answer_data["safety_note"]
 }
+@router.get("/list", response_model=DocumentListResponse)
+def list_uploaded_documents():
+    documents = list_documents()
+
+    return {
+        "status": "success",
+        "message": "Documents retrieved successfully.",
+        "document_count": len(documents),
+        "documents": documents
+    }

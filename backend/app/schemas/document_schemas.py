@@ -23,6 +23,9 @@ class SourceChunk(BaseModel):
 class DocumentUploadResponse(BaseModel):
     status: str
     message: str
+    document_id: str | None = None
+    upload_timestamp: str | None = None
+    metadata_path: str | None = None
     filename: str | None = None
     saved_path: str | None = None
     processed_text_path: str | None = None
@@ -58,3 +61,23 @@ class DocumentAskResponse(BaseModel):
     source_chunks: list[SourceChunk] = []
     suggested_questions: list[str] = []
     safety_note: str | None = None
+
+class DocumentMetadata(BaseModel):
+    document_id: str
+    filename: str
+    saved_path: str
+    processed_text_path: str
+    chunks_path: str
+    chunks_filename: str
+    file_size_kb: float
+    page_count: int
+    character_count: int
+    chunk_count: int
+    upload_timestamp: str
+
+
+class DocumentListResponse(BaseModel):
+    status: str
+    message: str
+    document_count: int
+    documents: list[DocumentMetadata] = []
