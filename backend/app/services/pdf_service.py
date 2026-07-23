@@ -6,6 +6,15 @@ import fitz
 PROCESSED_DATA_DIR = Path("data/processed")
 
 
+def get_pdf_page_count(pdf_path: Path) -> int:
+    """
+    Count the number of pages in a PDF file.
+    """
+
+    with fitz.open(pdf_path) as document:
+        return document.page_count
+
+
 def extract_text_from_pdf(pdf_path: Path) -> str:
     """
     Extract text from a PDF file using PyMuPDF.

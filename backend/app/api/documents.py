@@ -1,10 +1,16 @@
 from pathlib import Path
 
 from fastapi import APIRouter, File, UploadFile
+from backend.app.services.file_validation_service import (
+    is_pdf_file,
+    is_file_size_allowed,
+    sanitize_filename,
+)
 
 from backend.app.services.pdf_service import (
     extract_text_from_pdf,
     save_extracted_text,
+    get_pdf_page_count,
 )
 from backend.app.services.chunking_service import (
     split_text_into_chunks,
@@ -15,46 +21,65 @@ from backend.app.services.search_service import (
     search_chunks,
 )
 from backend.app.services.answer_service import create_basic_answer
+from backend.app.schemas.document_schemas import (
+    DocumentUploadResponse,
+    DocumentSearchResponse,
+    DocumentAskResponse,
+)
+from backend.app.services.answer_service import create_basic_answer
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
 
 RAW_DATA_DIR = Path("data/raw")
 
 
-@router.post("/upload")
+@router.post("/upload", response_model=DocumentUploadResponse)
 async def upload_document(file: UploadFile = File(...)):
     RAW_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-    if not file.filename.lower().endswith(".pdf"):
+    if not is_pdf_file(file.filename):
         return {
             "status": "error",
             "message": "Only PDF files are allowed."
         }
 
-    file_path = RAW_DATA_DIR / file.filename
+    safe_filename = sanitize_filename(file.filename)
+    file_path = RAW_DATA_DIR / safe_filename
 
     content = await file.read()
+    file_size_bytes = len(content)
+    file_size_kb = round(file_size_bytes / 1024, 2)
+
+    if not is_file_size_allowed(file_size_bytes):
+        return {
+            "status": "error",
+            "message": "File size is too large. Maximum allowed size is 10 MB."
+        }
 
     with open(file_path, "wb") as saved_file:
         saved_file.write(content)
 
+    page_count = get_pdf_page_count(file_path)
+
     extracted_text = extract_text_from_pdf(file_path)
-    processed_path = save_extracted_text(file.filename, extracted_text)
+    processed_path = save_extracted_text(safe_filename, extracted_text)
 
     chunks = split_text_into_chunks(extracted_text)
-    chunks_path = save_chunks(file.filename, chunks)
+    chunks_path = save_chunks(safe_filename, chunks)
 
     preview_text = extracted_text[:1000]
     preview_chunks = chunks[:3]
 
     return {
         "status": "success",
-        "message": "PDF uploaded, text extracted, and chunks created successfully.",
-        "filename": file.filename,
+        "message": "PDF uploaded, validated, text extracted, and chunks created successfully.",
+        "filename": safe_filename,
         "saved_path": str(file_path),
         "processed_text_path": str(processed_path),
         "chunks_path": str(chunks_path),
         "chunks_filename": chunks_path.name,
+        "file_size_kb": file_size_kb,
+        "page_count": page_count,
         "text_preview": preview_text,
         "character_count": len(extracted_text),
         "chunk_count": len(chunks),
@@ -62,7 +87,7 @@ async def upload_document(file: UploadFile = File(...)):
     }
 
 
-@router.get("/search")
+@router.get("/search", response_model=DocumentSearchResponse)
 def search_document_chunks(
     chunks_filename: str,
     query: str,
@@ -72,11 +97,13 @@ def search_document_chunks(
 
     if not chunks:
         return {
-            "status": "error",
-            "message": "Chunks file not found or empty.",
-            "query": query,
-            "results": []
-        }
+    "status": "error",
+    "message": "Chunks file not found or empty.",
+    "query": query,
+    "chunks_filename": chunks_filename,
+    "result_count": 0,
+    "results": []
+}
 
     results = search_chunks(
         chunks=chunks,
@@ -94,7 +121,7 @@ def search_document_chunks(
     }
 
 
-@router.get("/ask")
+@router.get("/ask", response_model=DocumentAskResponse)
 def ask_document_question(
     chunks_filename: str,
     query: str,
@@ -104,11 +131,18 @@ def ask_document_question(
 
     if not chunks:
         return {
-            "status": "error",
-            "message": "Chunks file not found or empty.",
-            "query": query,
-            "answer": None
-        }
+    "status": "error",
+    "message": "Chunks file not found or empty.",
+    "query": query,
+    "chunks_filename": chunks_filename,
+    "result_count": 0,
+    "answer": None,
+    "confidence": "low",
+    "reason": "Chunks file was not found or empty.",
+    "source_chunks": [],
+    "suggested_questions": [],
+    "safety_note": "This response is based only on the uploaded document and does not provide medical advice."
+}
 
     results = search_chunks(
         chunks=chunks,

@@ -16,7 +16,7 @@ st.write(
     "understand health-related documents in simple language."
 )
 
-st.info("Day 8: Structured answer and safety guardrails.")
+st.info("Day 10: PDF upload validation and document metadata.")
 
 st.subheader("Backend Connection Test")
 
@@ -79,6 +79,8 @@ if uploaded_file is not None:
                     st.success(data["message"])
 
                     st.write(f"**Filename:** {data['filename']}")
+                    st.write(f"**File Size:** {data['file_size_kb']} KB")
+                    st.write(f"**Page Count:** {data['page_count']}")
                     st.write(f"**Saved PDF Path:** {data['saved_path']}")
                     st.write(f"**Extracted Text Path:** {data['processed_text_path']}")
                     st.write(f"**Chunks Path:** {data['chunks_path']}")
